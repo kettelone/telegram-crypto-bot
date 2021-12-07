@@ -7,7 +7,7 @@ import bodyParser from "body-parser";
 import { Crypto } from "./models/models.js";
 import { userResponse } from "./telegram-bot/telegram-class.js";
 const PORT = process.env.PORT || 80;
-const URI = `webhook/${process.env.TELEGRAM_TOKEN}`;
+const URI = `/webhook/${process.env.TELEGRAM_TOKEN}`;
 const webHookUrl = process.env.SERVER_URL + URI;
 const telegramEndpoint = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}`;
 
@@ -33,10 +33,13 @@ const startDB = () => {
 
 //connect to Telegram bot
 const init = async () => {
-  let response = await axios.get(
-    `${telegramEndpoint}/setWebhook?url=${webHookUrl}`
-  );
-  return response;
+  try {
+    let response = await axios.get(
+      `${telegramEndpoint}/setWebhook?url=${webHookUrl}`
+    );
+  } catch (e) {
+    console.log(e);
+  }
 };
 
 app.listen(PORT, async () => {
