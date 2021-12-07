@@ -44,7 +44,9 @@ app.listen(PORT, async () => {
   startDB();
   console.log(`Server has been started on port ${PORT}`);
 });
-
+app.get("/", (req, res) => {
+  res.json("Seems it works");
+});
 //on response from Telegram bot
 app.post(URI, async (req, res) => {
   //if inline keyboard button was pressed
