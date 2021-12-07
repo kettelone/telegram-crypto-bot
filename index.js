@@ -7,7 +7,7 @@ import bodyParser from "body-parser";
 import { Crypto } from "./models/models.js";
 import { userResponse } from "./telegram-bot/telegram-class.js";
 const PORT = process.env.PORT || 80;
-const URI = `webhook/${process.env.TELEGRAM_TOKEN}`;
+const URI = `/webhook/${process.env.TELEGRAM_TOKEN}`;
 const webHookUrl = process.env.SERVER_URL + URI;
 const telegramEndpoint = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}`;
 
