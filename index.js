@@ -6,21 +6,31 @@ import mongoose from "mongoose";
 import bodyParser from "body-parser";
 import { Crypto } from "./models/models.js";
 import { userResponse } from "./telegram-bot/telegram-class.js";
+// const PORT = process.env.PORT || 80;
+// const URI = `/webhook/${process.env.TELEGRAM_TOKEN}`;
+// const webHookUrl = process.env.SERVER_URL + URI;
+// const telegramEndpoint = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}`;
 const PORT = process.env.PORT || 80;
-const URI = `/webhook/${process.env.TELEGRAM_TOKEN}`;
-const webHookUrl = process.env.SERVER_URL + URI;
-const telegramEndpoint = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}`;
-
+const URI = `/webhook/5096577789:AAECmm6FQDddlLk5zVx_06XA9UnhVmyHgS8`;
+const webHookUrl =
+  "https://telergam-crypto-bot.herokuapp.com/webhook/5096577789:AAECmm6FQDddlLk5zVx_06XA9UnhVmyHgS8`";
+const telegramEndpoint =
+  "https://api.telegram.org/bot5096577789:AAECmm6FQDddlLk5zVx_06XA9UnhVmyHgS8";
+const URL =
+  "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest";
 const app = express();
 app.use(bodyParser.json());
 
 //Connect to DB
 const startDB = () => {
   mongoose
-    .connect(process.env.DB_CONN_STRING, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    })
+    .connect(
+      "mongodb+srv://username:12345@cluster0.dv9v1.mongodb.net/Telegram-bot?retryWrites=true&w=majority",
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      }
+    )
     .catch((error) => console.log(error));
 
   //Get the default connection
