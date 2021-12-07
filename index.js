@@ -18,19 +18,18 @@ const telegramEndpoint =
   "https://api.telegram.org/bot5096577789:AAECmm6FQDddlLk5zVx_06XA9UnhVmyHgS8";
 const URL =
   "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest";
+const connection_string =
+  "mongodb+srv://username:12345@cluster0.dv9v1.mongodb.net/Telegram-bot?retryWrites=true&w=majority";
 const app = express();
 app.use(bodyParser.json());
 
 //Connect to DB
 const startDB = () => {
   mongoose
-    .connect(
-      "mongodb+srv://username:12345@cluster0.dv9v1.mongodb.net/Telegram-bot?retryWrites=true&w=majority",
-      {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      }
-    )
+    .connect(connection_string, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    })
     .catch((error) => console.log(error));
 
   //Get the default connection
