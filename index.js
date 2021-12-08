@@ -47,9 +47,11 @@ app.listen(PORT, async () => {
   startDB();
   console.log(`Server has been started on port ${PORT}`);
 });
+
 app.get("/", (req, res) => {
   res.json("Seems it works");
 });
+
 //on response from Telegram bot
 app.post(URI, async (req, res) => {
   //if inline keyboard button was pressed
@@ -75,18 +77,20 @@ app.post(URI, async (req, res) => {
       userId = req.body.message.from.id;
 
     if (text === "/start") {
-      userResponse.start(chatId, name);
+      await userResponse.start(chatId, name);
     } else if (text === "/help") {
-      userResponse.help(chatId);
+      await userResponse.help(chatId);
     } else if (text === "/list_recent") {
-      userResponse.listRecent(chatId);
+      await userResponse.listRecent(chatId);
     } else if (text === text.toUpperCase()) {
       let coin = text.substring(1);
       let detailedCoinInfo = await userResponse.detailedCoinInfo(coin);
 
       // check if coin is already in the Favourite list
       if (detailedCoinInfo) {
-        userResponse.exist(chatId, userId, detailedCoinInfo, coin);
+        await userResponse.exist(chatId, userId, detailedCoinInfo, coin);
+      } else {
+        await userResponse.specifyCoin(chatId);
       }
     } else if (text.includes("/addToFavourite")) {
       let startIndex = text.indexOf(" ");
