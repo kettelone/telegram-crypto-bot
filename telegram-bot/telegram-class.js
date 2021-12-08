@@ -254,7 +254,7 @@ class UserResponse {
     return;
   }
 
-  async removeFromList(deleteCoin, userId, chatId) {
+  async removeFromFavourite(deleteCoin, userId, chatId) {
     try {
       Crypto.deleteOne(
         { symbol: `${deleteCoin}`, userId: userId },
@@ -271,7 +271,7 @@ class UserResponse {
     try {
       await axios.post(`${telegramEndpoint}/sendMessage`, {
         chat_id: chatId,
-        text: `💰<b>${deleteCoin}</b> has been removed from Favourite`,
+        text: `💰<b>${deleteCoin}</b> has been removed from Favourite list`,
         parse_mode: "HTML",
       });
     } catch (e) {
@@ -304,7 +304,6 @@ class UserResponse {
       console.log(e);
     }
   }
-  return;
 }
 
 let userResponse = new UserResponse();
