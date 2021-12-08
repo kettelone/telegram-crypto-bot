@@ -271,7 +271,7 @@ class UserResponse {
     try {
       await axios.post(`${telegramEndpoint}/sendMessage`, {
         chat_id: chatId,
-        text: `💰<b>${deleteCoin}</b> has been deleted from Favourite`,
+        text: `💰<b>${deleteCoin}</b> has been removed from Favourite`,
         parse_mode: "HTML",
       });
     } catch (e) {
