@@ -16,7 +16,7 @@ const userResponse = new UserResponse()
 const app = express()
 app.use(bodyParser.json())
 
-//Connect to DataBase
+//Connect to DB
 const startDB = async () => {
 	try {
 		await mongoose.connect(process.env.DB_CONN_STRING, {
