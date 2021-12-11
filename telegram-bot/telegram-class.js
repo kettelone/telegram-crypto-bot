@@ -10,7 +10,7 @@ import {
 const urlCoinmarketcap = process.env.URL
 const telegramEndpoint = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}`
 
-class UserResponse {
+export class UserResponse {
 	async start(chatId, name) {
 		try {
 			await axios.post(`${telegramEndpoint}/sendSticker`, {
@@ -119,7 +119,7 @@ class UserResponse {
 					(cryptoList += `/${el.symbol} $${el.details.price.toFixed(4)}\n`)
 			)
 		} catch (e) {
-			console.log('Big eroor occured.......', e)
+			console.log('Big error occured.......', e)
 		}
 
 		if (!cryptoList) {
@@ -175,18 +175,6 @@ class UserResponse {
 			}
 		}
 		return
-	}
-
-	async dontExist(chatId, deleteCoin) {
-		try {
-			await axios.post(`${telegramEndpoint}/sendMessage`, {
-				chat_id: chatId,
-				text: `💰<b>${deleteCoin}</b> is not in your Favourite list`,
-				parse_mode: 'HTML',
-			})
-		} catch (e) {
-			console.log(e)
-		}
 	}
 
 	async addToFavourite(addCoin, userId, chatId) {
@@ -280,24 +268,11 @@ class UserResponse {
 		return
 	}
 
-	async specifyCoin(chatId) {
+	async wrongCommand(chatId, text) {
 		try {
 			await axios.post(`${telegramEndpoint}/sendMessage`, {
 				chat_id: chatId,
-				text: `Please specify coin name`,
-				parse_mode: 'HTML',
-			})
-		} catch (e) {
-			console.log(e)
-		}
-		return
-	}
-
-	async unknownCommand(chatId) {
-		try {
-			await axios.post(`${telegramEndpoint}/sendMessage`, {
-				chat_id: chatId,
-				text: `Unknown command\nTry again...`,
+				text: `${text}`,
 				parse_mode: 'HTML',
 			})
 		} catch (e) {
@@ -305,6 +280,3 @@ class UserResponse {
 		}
 	}
 }
-
-let userResponse = new UserResponse()
-export { userResponse }

@@ -1,15 +1,17 @@
 import dotenv from 'dotenv'
-dotenv.config()
 import axios from 'axios'
 import express from 'express'
 import mongoose from 'mongoose'
 import bodyParser from 'body-parser'
 import { Crypto } from './models/models.js'
-import { userResponse } from './telegram-bot/telegram-class.js'
+import { UserResponse } from './telegram-bot/telegram-class.js'
+dotenv.config()
+
 const PORT = process.env.PORT || 80
 const URI = `/webhook/${process.env.TELEGRAM_TOKEN}`
-const webHookUrl = process.env.SERVER_URL + URI
+const webHookUrl = `${process.env.SERVER_URL}${URI}`
 const telegramEndpoint = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}`
+const userResponse = new UserResponse()
 
 const app = express()
 app.use(bodyParser.json())
@@ -38,84 +40,136 @@ const init = async () => {
 
 app.listen(PORT, async () => {
 	console.log(`Server has been started on port ${PORT}`)
-	init()
-	startDB()
+	await init()
+	await startDB()
 })
 
 //on response from Telegram bot
 app.post(URI, async (req, res) => {
-	//if inline keyboard button was pressed
-	if (req.body.hasOwnProperty('callback_query')) {
-		const data = req.body.callback_query.data,
-			text = req.body.callback_query.message.text,
-			userId = req.body.callback_query.from.id,
-			chatId = req.body.callback_query.message.chat.id,
-			coin = text.substring(2, text.indexOf('\n'))
-
-		if (data === 'ADD TO FAVOURITE') {
-			userResponse.addToFavourite(coin, userId, chatId)
-		} else if (data === 'REMOVE FROM FAVOURITE') {
-			userResponse.removeFromFavourite(coin, userId, chatId)
+	let tgMessage
+	if (req.body.callback_query) {
+		tgMessage = {
+			data_callback_query: req.body.callback_query.data,
+			text_callback_query: req.body.callback_query.message.text,
+			userId_callback_query: req.body.callback_query.from.id,
+			chatId_callback_query: req.body.callback_query.message.chat.id,
 		}
+	}
+
+	if (req.body.message) {
+		tgMessage = {
+			name: req.body.message.from.first_name,
+			chatId: req.body.message.chat.id,
+			text: req.body.message.text,
+			userId: req.body.message.from.id,
+		}
+	}
+
+	//if inline keyboard button was pressed
+	if (
+		req.body.hasOwnProperty('callback_query') &&
+		tgMessage.data_callback_query === 'ADD TO FAVOURITE'
+	) {
+		await userResponse.addToFavourite(
+			tgMessage.text_callback_query.substring(
+				2,
+				tgMessage.text_callback_query.indexOf('\n')
+			),
+			tgMessage.userId_callback_query,
+			tgMessage.chatId_callback_query
+		)
+	} else if (
+		req.body.hasOwnProperty('callback_query') &&
+		tgMessage.data_callback_query === 'REMOVE FROM FAVOURITE'
+	) {
+		await userResponse.removeFromFavourite(
+			tgMessage.text_callback_query.substring(
+				2,
+				tgMessage.text_callback_query.indexOf('\n')
+			),
+			tgMessage.userId_callback_query,
+			tgMessage.chatId_callback_query
+		)
 	} //if sticker was send
 	else if (req.body.message.hasOwnProperty('sticker')) {
 		return res.send()
 	} //if text message was sent
-	else {
-		const name = req.body.message.from.first_name,
-			chatId = req.body.message.chat.id,
-			text = req.body.message.text,
-			userId = req.body.message.from.id
-
-		if (text === '/start') {
-			userResponse.start(chatId, name)
-		} else if (text === '/help') {
-			userResponse.help(chatId)
-		} else if (text === '/list_recent') {
-			userResponse.listRecent(chatId)
-		} else if (text === text.toUpperCase()) {
-			let coin = text.substring(1)
-			let detailedInfo = await userResponse.detailedCoinInfo(coin)
-
-			// check if coin is already in the Favourite list
-			if (detailedInfo) {
-				userResponse.exist(chatId, userId, detailedInfo, coin)
-			} else {
-				userResponse.specifyCoin(chatId)
-			}
-		} else if (text.includes('/addToFavourite')) {
-			let startIndex = text.indexOf(' ')
-			let addCoin = text.substring(startIndex).trim()
-
-			//if coin name was not specified
-			if (addCoin === '/addToFavourite') {
-				userResponse.specifyCoin(chatId)
-			} else {
-				userResponse.addToFavourite(addCoin, userId, chatId)
-			}
-		} else if (text === '/list_favourite') {
-			userResponse.listFavourite(chatId, userId)
-		} else if (text.includes('/deleteFavourite')) {
-			let startIndex = text.indexOf(' ')
-			let deleteCoin = text.substring(startIndex).trim()
-
-			if (deleteCoin === '/deleteFavourite') {
-				userResponse.specifyCoin(chatId)
-			} else {
-				let exist = await Crypto.findOne({
-					symbol: `${deleteCoin}`,
-					userId: userId,
-				})
-
-				if (!exist) {
-					userResponse.dontExist(chatId, deleteCoin)
-				} else {
-					userResponse.removeFromFavourite(deleteCoin, userId, chatId)
-				}
-			}
+	else if (tgMessage.text === '/start') {
+		await userResponse.start(tgMessage.chatId, tgMessage.name)
+	} else if (tgMessage.text === '/help') {
+		await userResponse.help(tgMessage.chatId)
+	} else if (tgMessage.text === '/list_recent') {
+		await userResponse.listRecent(tgMessage.chatId)
+	} else if (tgMessage.text === tgMessage.text.toUpperCase()) {
+		const detailedInfo = await userResponse.detailedCoinInfo(
+			tgMessage.text.substring(1)
+		)
+		// check if coin is already in the Favourite list
+		if (detailedInfo) {
+			await userResponse.exist(
+				tgMessage.chatId,
+				tgMessage.userId,
+				detailedInfo,
+				tgMessage.text.substring(1)
+			)
 		} else {
-			userResponse.unknownCommand(chatId)
+			await userResponse.wrongCommand(
+				tgMessage.chatId,
+				'Please specify coin name'
+			)
 		}
+	} else if (
+		tgMessage.text.includes('/addToFavourite') &&
+		tgMessage.text === '/addToFavourite'
+	) {
+		await userResponse.wrongCommand(
+			tgMessage.chatId,
+			'Please specify coin name'
+		)
+	} else if (tgMessage.text.includes('/addToFavourite')) {
+		const startIndex = text.indexOf(' ')
+		const addCoin = text.substring(startIndex).trim()
+
+		await userResponse.addToFavourite(
+			addCoin,
+			tgMessage.userId,
+			tgMessage.chatId
+		)
+	} else if (tgMessage.text === '/list_favourite') {
+		await userResponse.listFavourite(tgMessage.chatId, tgMessage.userId)
+	} else if (
+		tgMessage.text.includes('/deleteFavourite') &&
+		tgMessage.text === '/deleteFavourite'
+	) {
+		await userResponse.wrongCommand(
+			tgMessage.chatId,
+			'Please specify coin name'
+		)
+	} else if (tgMessage.text.includes('/deleteFavourite')) {
+		const startIndex = tgMessage.text.indexOf(' ')
+		const deleteCoin = tgMessage.text.substring(startIndex).trim()
+
+		const exist = await Crypto.findOne({
+			symbol: `${deleteCoin}`,
+			userId: tgMessage.userId,
+		})
+		if (!exist) {
+			await userResponse.wrongCommand(
+				tgMessage.chatId,
+				`💰<b>${deleteCoin}</b> is not in your Favourite list`
+			)
+		} else {
+			await userResponse.removeFromFavourite(
+				deleteCoin,
+				tgMessage.userId,
+				tgMessage.chatId
+			)
+		}
+	} else {
+		await userResponse.wrongCommand(
+			tgMessage.chatId,
+			'Unknown command\nTry again...'
+		)
 	}
 	return res.send()
 })
