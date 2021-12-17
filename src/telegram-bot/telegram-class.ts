@@ -1,17 +1,22 @@
 import dotenv from 'dotenv'
-dotenv.config()
 import axios from 'axios'
-import { Crypto } from '../models/models.js'
+import { Crypto, ICrypto} from '../models/models.js'
 import {
 	COMMANDS,
 	buttonAdd,
 	buttonDelete,
-} from '../telegram-bot/telegram-index.js'
-const urlCoinmarketcap = process.env.URL
+} from './telegram-index.js'
+import {CoinMarketResponse} from '../intrefaces/coinMarketResponse'
+import {IUserResponse} from '../intrefaces/userResponse'
+dotenv.config()
+
+const urlCoinmarketcap: string = process.env.URL!
+const coinMarketKey: string = process.env.COIN_MARKET_CAP_KEY!
 const telegramEndpoint = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}`
 
-export class UserResponse {
-	async start(chatId, name) {
+
+export class UserResponse implements IUserResponse {
+	async start(chatId: number, name: string): Promise<void> {
 		try {
 			await axios.post(`${telegramEndpoint}/sendSticker`, {
 				chat_id: chatId,
@@ -32,7 +37,7 @@ export class UserResponse {
 		}
 	}
 
-	async help(chatId) {
+	async help(chatId: number): Promise<void>{
 		let helpText = ''
 		helpText += COMMANDS.map(
 			(command) =>
@@ -50,14 +55,14 @@ export class UserResponse {
 		}
 	}
 
-	async listRecent(chatId) {
+	async listRecent(chatId: number): Promise<void> {
 		try {
-			let recentList = await axios
-				.get(urlCoinmarketcap, {
-					headers: { 'X-CMC_PRO_API_KEY': process.env.COIN_MARKET_CAP_KEY },
+			const recentList = await axios
+				.get<CoinMarketResponse>(urlCoinmarketcap, {
+					headers: { 'X-CMC_PRO_API_KEY': coinMarketKey },
 				})
-				.then((response) => response.data.data)
-				.then(function (data) {
+				.then(response => response.data.data)
+				.then((data) => {
 					let list = ''
 
 					for (let k = 0; k < 25; k++) {
@@ -78,14 +83,14 @@ export class UserResponse {
 		}
 	}
 
-	async detailedCoinInfo(coin) {
-		let detailedInfo = await axios
-			.get(urlCoinmarketcap, {
-				headers: { 'X-CMC_PRO_API_KEY': process.env.COIN_MARKET_CAP_KEY },
+	async detailedCoinInfo(coin: string): Promise<string | boolean>{
+		const detailedInfo = await axios
+			.get<CoinMarketResponse>(urlCoinmarketcap, {
+				headers: { 'X-CMC_PRO_API_KEY': coinMarketKey },
 			})
 			.then((response) => response.data.data)
 			.then((data) => {
-				for (let el of data) {
+				for (const el of data) {
 					if (el.symbol === coin) {
 						return el
 					}
@@ -109,10 +114,10 @@ export class UserResponse {
 		return detailedInfo
 	}
 
-	async listFavourite(chatId, userId) {
+	async listFavourite(chatId: number, userId: number): Promise<void>{
 		let cryptoList = ''
 		try {
-			let favouriteCrypto = await Crypto.find({ userId: userId })
+			const favouriteCrypto: Array<ICrypto>  = await Crypto.find({ userId: userId })
 
 			favouriteCrypto.map(
 				(el) =>
@@ -145,8 +150,8 @@ export class UserResponse {
 		}
 	}
 
-	async exist(chatId, userId, detailedCoinInfo, coin) {
-		const coinExist = await Crypto.findOne({
+	async exist(chatId: number, userId: number, detailedCoinInfo: string, coin: string): Promise<void> {
+		const coinExist: ICrypto | null = await Crypto.findOne({
 			symbol: `${coin}`,
 			userId: userId,
 		})
@@ -174,33 +179,34 @@ export class UserResponse {
 				console.log(e)
 			}
 		}
-		return
+		// return
 	}
 
-	async addToFavourite(addCoin, userId, chatId) {
-		let exist = await Crypto.findOne({
+	async addToFavourite(addCoin: string, userId: number, chatId: number): Promise<void> {
+		const exist: ICrypto | null = await Crypto.findOne({
 			symbol: `${addCoin}`,
 			userId: userId,
 		})
 
 		if (!exist) {
 			await axios
-				.get(urlCoinmarketcap, {
+				.get<CoinMarketResponse>(urlCoinmarketcap, {
 					headers: {
-						'X-CMC_PRO_API_KEY': process.env.COIN_MARKET_CAP_KEY,
+						'X-CMC_PRO_API_KEY': coinMarketKey,
 					},
 				})
 				.then((response) => response.data.data)
 				.then((data) => {
-					for (let el of data) {
+					for (const el of data) {
 						if (el.symbol === addCoin) {
 							return el
 						}
 					}
 				})
 				.then((coinToAdd) => {
-					try {
-						let coinDocument = new Crypto({
+					if(coinToAdd){
+						try {
+						const coinDocument: ICrypto = new Crypto({
 							name: coinToAdd.name,
 							symbol: coinToAdd.symbol,
 							dateAdded: coinToAdd.date_added,
@@ -208,13 +214,14 @@ export class UserResponse {
 							userId: userId,
 						})
 
-						coinDocument.save(function (err, doc) {
+						coinDocument.save(function (err: any) {
 							if (err) return console.error(err)
 							console.log('Document inserted succussfully!')
 						})
 						return true
 					} catch (e) {
 						return false
+					}
 					}
 				})
 				.then((status) => {
@@ -239,14 +246,13 @@ export class UserResponse {
 				parse_mode: 'HTML',
 			})
 		}
-		return
 	}
 
-	async removeFromFavourite(deleteCoin, userId, chatId) {
+	async removeFromFavourite(deleteCoin: string, userId: number, chatId: number): Promise<void>{
 		try {
 			Crypto.deleteOne(
 				{ symbol: `${deleteCoin}`, userId: userId },
-				function (err, docs) {
+				function (err:Error) {
 					if (err) {
 						console.log(err)
 					}
@@ -265,10 +271,9 @@ export class UserResponse {
 		} catch (e) {
 			console.log(e)
 		}
-		return
 	}
 
-	async wrongCommand(chatId, text) {
+	async wrongCommand(chatId: number, text: string): Promise<void> {
 		try {
 			await axios.post(`${telegramEndpoint}/sendMessage`, {
 				chat_id: chatId,

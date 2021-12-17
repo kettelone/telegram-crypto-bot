@@ -3,8 +3,9 @@ import axios from 'axios'
 import express from 'express'
 import mongoose from 'mongoose'
 import bodyParser from 'body-parser'
-import { Crypto } from './models/models.js'
+import { Crypto, ICrypto} from './models/models.js'
 import { UserResponse } from './telegram-bot/telegram-class.js'
+import {RequestType} from './intrefaces/telegramResponse'
 dotenv.config()
 
 const PORT = process.env.PORT || 80
@@ -17,12 +18,10 @@ const app = express()
 app.use(bodyParser.json())
 
 //Connect to DB
-const startDB = async () => {
+const startDB = async (): Promise<void> => {
 	try {
-		await mongoose.connect(process.env.DB_CONN_STRING, {
-			useNewUrlParser: true,
-			useUnifiedTopology: true,
-		})
+		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+		mongoose.connect(process.env.DB_CONN_STRING!)
 	} catch (e) {
 		console.log(e)
 	}
@@ -30,7 +29,7 @@ const startDB = async () => {
 }
 
 //connect to Telegram bot
-const init = async () => {
+const init = async () : Promise<void> => {
 	try {
 		await axios.get(`${telegramEndpoint}/setWebhook?url=${webHookUrl}`)
 	} catch (e) {
@@ -38,74 +37,75 @@ const init = async () => {
 	}
 }
 
-app.listen(PORT, async () => {
+app.listen(PORT, async (): Promise<void> => {
 	console.log(`Server has been started on port ${PORT}`)
 	await init()
 	await startDB()
 })
 
-//on response from Telegram bot
-app.post(URI, async (req, res) => {
-	let tgMessage
-	if (req.body.callback_query) {
-		tgMessage = {
-			data_callback_query: req.body.callback_query.data,
-			text_callback_query: req.body.callback_query.message.text,
-			userId_callback_query: req.body.callback_query.from.id,
-			chatId_callback_query: req.body.callback_query.message.chat.id,
-		}
-	}
 
-	if (req.body.message) {
+//on response from Telegram bot
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+app.post(URI, async (req: RequestType , res:any) => {
+
+let tgMessage;
+let tgCallback;
+
+	if (req.body.callback_query) {
+		tgCallback = {
+			data: req.body.callback_query.data,
+			text: req.body.callback_query.message.text,
+			userId: req.body.callback_query.from.id,
+			chatId: req.body.callback_query.message.chat.id
+		}
+
+
+	}else if(req.body.message) {
 		tgMessage = {
 			name: req.body.message.from.first_name,
 			chatId: req.body.message.chat.id,
 			text: req.body.message.text,
-			userId: req.body.message.from.id,
+			userId: req.body.message.from.id
 		}
 	}
 
 	//if inline keyboard button was pressed
-	if (
-		req.body.hasOwnProperty('callback_query') &&
-		tgMessage.data_callback_query === 'ADD TO FAVOURITE'
+	if (tgCallback && tgCallback.data === 'ADD TO FAVOURITE'
 	) {
 		await userResponse.addToFavourite(
-			tgMessage.text_callback_query.substring(
+			tgCallback.text.substring(
 				2,
-				tgMessage.text_callback_query.indexOf('\n')
+				tgCallback.text.indexOf('\n')
 			),
-			tgMessage.userId_callback_query,
-			tgMessage.chatId_callback_query
+			tgCallback.userId,
+			tgCallback.chatId
 		)
-	} else if (
-		req.body.hasOwnProperty('callback_query') &&
-		tgMessage.data_callback_query === 'REMOVE FROM FAVOURITE'
-	) {
+	} else if (tgCallback && tgCallback.data === 'REMOVE FROM FAVOURITE') {
 		await userResponse.removeFromFavourite(
-			tgMessage.text_callback_query.substring(
+			tgCallback.text.substring(
 				2,
-				tgMessage.text_callback_query.indexOf('\n')
+				tgCallback.text.indexOf('\n')
 			),
-			tgMessage.userId_callback_query,
-			tgMessage.chatId_callback_query
+			tgCallback.userId,
+			tgCallback.chatId
 		)
 	} //if sticker was send
+	// eslint-disable-next-line no-prototype-builtins
 	else if (req.body.message.hasOwnProperty('sticker')) {
 		return res.send()
 	} //if text message was sent
-	else if (tgMessage.text === '/start') {
+	else if (tgMessage && tgMessage.text === '/start') {
 		await userResponse.start(tgMessage.chatId, tgMessage.name)
-	} else if (tgMessage.text === '/help') {
+	} else if (tgMessage && tgMessage.text === '/help') {
 		await userResponse.help(tgMessage.chatId)
-	} else if (tgMessage.text === '/list_recent') {
+	} else if (tgMessage && tgMessage.text === '/list_recent') {
 		await userResponse.listRecent(tgMessage.chatId)
-	} else if (tgMessage.text === tgMessage.text.toUpperCase()) {
+	} else if (tgMessage && tgMessage.text === tgMessage.text.toUpperCase()) {
 		const detailedInfo = await userResponse.detailedCoinInfo(
 			tgMessage.text.substring(1)
 		)
 		// check if coin is already in the Favourite list
-		if (detailedInfo) {
+		if (typeof detailedInfo === 'string') {
 			await userResponse.exist(
 				tgMessage.chatId,
 				tgMessage.userId,
@@ -119,6 +119,7 @@ app.post(URI, async (req, res) => {
 			)
 		}
 	} else if (
+		tgMessage && 
 		tgMessage.text.includes('/addToFavourite') &&
 		tgMessage.text === '/addToFavourite'
 	) {
@@ -126,18 +127,19 @@ app.post(URI, async (req, res) => {
 			tgMessage.chatId,
 			'Please specify coin name'
 		)
-	} else if (tgMessage.text.includes('/addToFavourite')) {
-		const startIndex = text.indexOf(' ')
-		const addCoin = text.substring(startIndex).trim()
+	} else if (tgMessage && tgMessage.text.includes('/addToFavourite')) {
+		const startIndex = tgMessage.text.indexOf(' ')
+		const addCoin = tgMessage.text.substring(startIndex).trim()
 
 		await userResponse.addToFavourite(
 			addCoin,
 			tgMessage.userId,
 			tgMessage.chatId
 		)
-	} else if (tgMessage.text === '/list_favourite') {
+	} else if (tgMessage &&  tgMessage.text === '/list_favourite') {
 		await userResponse.listFavourite(tgMessage.chatId, tgMessage.userId)
 	} else if (
+		tgMessage && 
 		tgMessage.text.includes('/deleteFavourite') &&
 		tgMessage.text === '/deleteFavourite'
 	) {
@@ -145,11 +147,11 @@ app.post(URI, async (req, res) => {
 			tgMessage.chatId,
 			'Please specify coin name'
 		)
-	} else if (tgMessage.text.includes('/deleteFavourite')) {
+	} else if (tgMessage && tgMessage.text.includes('/deleteFavourite')) {
 		const startIndex = tgMessage.text.indexOf(' ')
 		const deleteCoin = tgMessage.text.substring(startIndex).trim()
 
-		const exist = await Crypto.findOne({
+		const exist: ICrypto | null = await Crypto.findOne({
 			symbol: `${deleteCoin}`,
 			userId: tgMessage.userId,
 		})
@@ -165,7 +167,7 @@ app.post(URI, async (req, res) => {
 				tgMessage.chatId
 			)
 		}
-	} else {
+	} else if(tgMessage){
 		await userResponse.wrongCommand(
 			tgMessage.chatId,
 			'Unknown command\nTry again...'

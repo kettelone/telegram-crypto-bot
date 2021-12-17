@@ -1,0 +1,2 @@
+//CoinMarket response interfaces
+export {};
