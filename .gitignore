@@ -1,6 +1,7 @@
-*.env
-node_modules
-.vscode
+node_modules/
 dist/
-*.json
+tsconfig.json
+.env
+.vscode
 .eslintignore
+.eslintrc.json
