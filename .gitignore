@@ -1,6 +1,6 @@
 *.env
 node_modules
-*.vscode
-dist
+.vscode
+dist/
 *.json
 .eslintignore
