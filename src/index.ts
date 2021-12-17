@@ -20,7 +20,6 @@ app.use(bodyParser.json())
 //Connect to DB
 const startDB = async (): Promise<void> => {
 	try {
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 		mongoose.connect(process.env.DB_CONN_STRING!)
 	} catch (e) {
 		console.log(e)
@@ -45,7 +44,6 @@ app.listen(PORT, async (): Promise<void> => {
 
 
 //on response from Telegram bot
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.post(URI, async (req: RequestType , res:any) => {
 
 let tgMessage;
@@ -90,8 +88,7 @@ let tgCallback;
 			tgCallback.chatId
 		)
 	} //if sticker was send
-	// eslint-disable-next-line no-prototype-builtins
-	else if (req.body.message.hasOwnProperty('sticker')) {
+	else if (req.body.message.sticker) {
 		return res.send()
 	} //if text message was sent
 	else if (tgMessage && tgMessage.text === '/start') {
@@ -119,9 +116,7 @@ let tgCallback;
 			)
 		}
 	} else if (
-		tgMessage && 
-		tgMessage.text.includes('/addToFavourite') &&
-		tgMessage.text === '/addToFavourite'
+		tgMessage && tgMessage.text === '/addToFavourite'
 	) {
 		await userResponse.wrongCommand(
 			tgMessage.chatId,

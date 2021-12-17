@@ -84,35 +84,30 @@ export class UserResponse implements IUserResponse {
 	}
 
 	async detailedCoinInfo(coin: string): Promise<string | boolean>{
-		const detailedInfo = await axios
+		const coinMarketResponse = await axios
 			.get<CoinMarketResponse>(urlCoinmarketcap, {
 				headers: { 'X-CMC_PRO_API_KEY': coinMarketKey },
 			})
-			.then((response) => response.data.data)
-			.then((data) => {
-				for (const el of data) {
-					if (el.symbol === coin) {
-						return el
-					}
-				}
-				return false
-			})
-			.then((coinInfo) => {
-				if (coinInfo) {
-					let infoList = `💰<b>${coinInfo.symbol}</b>\n\n`
 
-					Object.keys(coinInfo.quote.USD).forEach((key) => {
-						infoList += `✅ <b>${key.toUpperCase()}</b>:\n       <u>${
-							coinInfo.quote.USD[key]
-						}</u>\n`
-					})
-					return infoList
-				} else {
-					return false
-				}
-			})
-		return detailedInfo
-	}
+		const coinsArray =  coinMarketResponse.data.data
+		const coinInfo = () =>{
+							for (const el of coinsArray) {
+								if (el.symbol === coin) {
+
+								let infoList = `💰<b>${el.symbol}</b>\n\n`
+
+								Object.keys(el.quote.USD).forEach((key) => {
+									infoList += `✅ <b>${key.toUpperCase()}</b>:\n       <u>${
+										el.quote.USD[key]
+									}</u>\n`
+								})
+							return infoList
+							}
+						}
+						return false
+					}
+			return coinInfo()
+		}
 
 	async listFavourite(chatId: number, userId: number): Promise<void>{
 		let cryptoList = ''
@@ -214,7 +209,7 @@ export class UserResponse implements IUserResponse {
 							userId: userId,
 						})
 
-						coinDocument.save(function (err: any) {
+						coinDocument.save(function (err) {
 							if (err) return console.error(err)
 							console.log('Document inserted succussfully!')
 						})
