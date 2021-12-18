@@ -42,8 +42,7 @@ app.listen(PORT, async (): Promise<void> => {
 	await startDB()
 })
 
-
-//on response from Telegram bot
+//on response from the Telegram bot
 app.post(URI, async (req: RequestType , res:any) => {
 
 let tgMessage;
