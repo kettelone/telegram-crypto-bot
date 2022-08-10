@@ -14,6 +14,12 @@ const telegramEndpoint = `https://api.telegram.org/bot${process.env.TELEGRAM_TOK
 const app = express()
 app.use(bodyParser.json())
 
+// every 15 minutes send a request to the app to prevent from falling asleep
+setInterval(async () => {
+  const appUrl = 'https://heroku-tg-crypto-bot.herokuapp.com/'
+  await axios.get(appUrl)
+}, 15 * 60 * 1000)
+
 //Connect to DB
 const startDB = async () => {
 	try {
